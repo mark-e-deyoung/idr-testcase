@@ -1,0 +1,7 @@
+// IdrTestConsole.rc
+// IDR_FEATURE: PE Resources (stringtable)
+STRINGTABLE
+BEGIN
+  1000, "IDR testcase: console resource marker"
+  1001, "IDR_FEATURE: resources/stringtable"
+END

@@ -1,0 +1,11 @@
+// Optional extra resource file.
+// build.sh already builds per-project *.rc to *.res via brcc32.
+// You can add more resources here and compile manually if desired:
+//
+//   wine brcc32 -r extra_resources.rc
+//
+// IDR_FEATURE: PE resources (extra)
+STRINGTABLE
+BEGIN
+  2000, "IDR testcase extra resource string"
+END

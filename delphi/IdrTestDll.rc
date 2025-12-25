@@ -1,0 +1,7 @@
+// IdrTestDll.rc
+// IDR_FEATURE: PE Resources (stringtable)
+STRINGTABLE
+BEGIN
+  1200, "IDR testcase: DLL resource marker"
+  1201, "IDR_FEATURE: exports/stdcall"
+END

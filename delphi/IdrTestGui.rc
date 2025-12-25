@@ -1,0 +1,7 @@
+// IdrTestGui.rc
+// IDR_FEATURE: PE Resources (stringtable)
+STRINGTABLE
+BEGIN
+  1100, "IDR testcase: GUI resource marker"
+  1101, "IDR_FEATURE: resources/dfm"
+END
