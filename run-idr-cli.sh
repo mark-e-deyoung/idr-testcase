@@ -24,6 +24,69 @@ if [[ -z "$IDR_EXE" || ! -f "$IDR_EXE" ]]; then
   exit 1
 fi
 
+# ---------------------------------------------------------------------------
+# Bottle / Wine integration for IDR
+# ---------------------------------------------------------------------------
+
+# Default Bottles bottle name for IDR; override with IDR_BOTTLE_NAME if desired.
+IDR_BOTTLE_NAME="${IDR_BOTTLE_NAME:-IDR-Win32}"
+
+# Helper that prefers Bottles CLI; falls back to system wine if needed.
+bottles_cli() {
+  if command -v bottles-cli >/dev/null 2>&1; then
+    bottles-cli "$@"
+  elif command -v flatpak >/dev/null 2>&1; then
+    flatpak run --command=bottles-cli com.usebottles.bottles "$@"
+  else
+    return 1
+  fi
+}
+
+USE_BOTTLES=0
+if bottles_cli --help >/dev/null 2>&1; then
+  USE_BOTTLES=1
+fi
+
+if [[ "$USE_BOTTLES" -eq 0 ]]; then
+  if ! command -v wine >/dev/null 2>&1; then
+    echo "ERROR: Neither Bottles CLI nor system wine is available."
+    echo "  - Install Bottles CLI (bottles-cli / Flatpak) or"
+    echo "  - Install wine and re-run this script."
+    exit 1
+  fi
+  echo "Using system wine (no Bottles CLI detected)."
+else
+  echo "Using Bottles bottle for IDR: $IDR_BOTTLE_NAME"
+fi
+
+# Map a Unix path to the Z: drive used by Wine/Bottles.
+to_win_path() {
+  local unix_path="$1"
+  if [[ "$unix_path" != /* ]]; then
+    unix_path="$PWD/$unix_path"
+  fi
+  printf 'Z:%s\n' "${unix_path//\//\\}"
+}
+
+run_idr() {
+  if [[ "$USE_BOTTLES" -eq 1 ]]; then
+    local args=()
+    local arg
+    for arg in "$@"; do
+      if [[ -e "$arg" ]]; then
+        args+=( "$(to_win_path "$arg")" )
+      else
+        args+=( "$arg" )
+      fi
+    done
+    local exe_win
+    exe_win="$(to_win_path "$IDR_EXE")"
+    bottles_cli run -b "$IDR_BOTTLE_NAME" --executable "$exe_win" -- "${args[@]}"
+  else
+    wine "$IDR_EXE" "$@"
+  fi
+}
+
 # Ensure binaries exist; build if missing
 if [[ ! -f "$OUT/IdrTestConsole.exe" || ! -f "$OUT/IdrTestGui.exe" || ! -f "$OUT/IdrTestDll.dll" ]]; then
   echo "Binaries missing — running ./build.sh first."
@@ -34,9 +97,9 @@ HELP_LOG="$LOGROOT/idr_help.txt"
 echo "==> Capturing IDR help output..."
 (
   set +e
-  wine "$IDR_EXE" "/?" >"$HELP_LOG" 2>&1 && exit 0
-  wine "$IDR_EXE" "-h" >"$HELP_LOG" 2>&1 && exit 0
-  wine "$IDR_EXE" "--help" >"$HELP_LOG" 2>&1 && exit 0
+  run_idr "/?" >"$HELP_LOG" 2>&1 && exit 0
+  run_idr "-h" >"$HELP_LOG" 2>&1 && exit 0
+  run_idr "--help" >"$HELP_LOG" 2>&1 && exit 0
   exit 0
 )
 echo "  wrote $HELP_LOG"
@@ -45,8 +108,12 @@ try_cmd() {
   local tag="$1"; shift
   local logfile="$LOGROOT/${tag}.log"
   echo "==> $tag"
-  echo "CMD: wine \"$IDR_EXE\" $*" | tee "$logfile"
-  ( wine "$IDR_EXE" "$@" ) >>"$logfile" 2>&1 || true
+  if [[ "$USE_BOTTLES" -eq 1 ]]; then
+    echo "CMD: bottles-cli run -b \"$IDR_BOTTLE_NAME\" --executable \"$(to_win_path "$IDR_EXE")\" -- $*" | tee "$logfile"
+  else
+    echo "CMD: wine \"$IDR_EXE\" $*" | tee "$logfile"
+  fi
+  ( run_idr "$@" ) >>"$logfile" 2>&1 || true
   echo "  log: $logfile"
 }
 

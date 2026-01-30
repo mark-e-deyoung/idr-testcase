@@ -1,0 +1,7 @@
+delphi/out/
+build/installer/
+build/run_test_in_container.sh
+scripts/run-idr-regressions.sh
+idr_debug.txt
+startup_error.log
+startup_trace.log

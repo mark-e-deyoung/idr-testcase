@@ -21,6 +21,8 @@ BIN_DIR="${BUILD_DIR}/win32"
 LOG_DIR="${BUILD_DIR}/logs"
 
 mkdir -p "${BIN_DIR}" "${LOG_DIR}"
+rm -f "${BIN_DIR}"/*.exe "${BIN_DIR}"/*.dll
+
 
 # Resolve the toolchain wrapper. Prefer an explicit env var, then PATH, then a
 # sibling borland-toolchains checkout (common in this workspace layout).
@@ -58,61 +60,49 @@ fi
 build_one() {
   local dpr="$1"
   local stem="$2"
+  local kind="$3"
   local log="${LOG_DIR}/${stem}.log"
+  
+  # The wrapper mounts the current dir as /work. 
+  # We run from ROOT_DIR so we can direct output to build/win32 easily.
+  local dpr_path="delphi/${dpr}"
 
-  echo "Building ${stem} from ${dpr} ..."
+  echo "Building ${stem} (${kind}) from ${dpr_path} ..."
 
-  # The delphi7-toolchain wrapper is expected to:
-  #   - compile the DPR inside a Docker+Wine container
-  #   - place the resulting EXE/DLL under an out/ directory that is
-  #     relative to the project root.
-  #
-  # To keep this script generic, we run the toolchain wrapper from
-  # the delphi/ directory and then copy the resulting binary into
-  # build/win32/.
+  pushd "${ROOT_DIR}" >/dev/null
 
-  pushd "${DELPHI_DIR}" >/dev/null
-  set +e
-  "${DELPHI7_TOOLCHAIN}" compile "${dpr}" >"${log}" 2>&1
-  local rc=$?
-  set -e
+  # Wrapper runs from project dir (delphi/).
+  # We use a relative output dir "build/win32" which ends up as delphi/build/win32
+  # due to wrapper constraints/behavior.
+  if ! "${DELPHI7_TOOLCHAIN}" compile --kind "${kind}" --out "build/win32" "${dpr_path}" >"${log}" 2>&1; then
+      echo "ERROR: build failed for ${dpr}; see ${log}" >&2
+      exit 1
+  fi
+  
   popd >/dev/null
 
-  # Copy the expected binary into build/win32. The exact output path
-  # is toolchain-wrapper-specific; by convention we expect:
-  #   out/delphi7/<stem>/<stem>.exe or .dll
-  #
-  # We check both .exe and .dll to cover console/GUI and DLL targets.
-
-  local src_base="${DELPHI_DIR}/out/delphi7/${stem}/${stem}"
-  local src=""
-
-  if [ -f "${src_base}.exe" ]; then
-    src="${src_base}.exe"
-  elif [ -f "${src_base}.dll" ]; then
-    src="${src_base}.dll"
-  else
-    if [[ ${rc} -ne 0 ]]; then
-      echo "ERROR: build failed for ${dpr}; see ${log}" >&2
-    fi
-    echo "ERROR: expected binary not found for ${stem} (looked for ${src_base}.exe/.dll)" >&2
-    exit 1
+  # Move artifact from delphi/build/win32 to build/win32
+  # The wrapper effectively put it in delphi/build/win32
+  local generated_artifact="${DELPHI_DIR}/build/win32/${stem}.${kind}"
+  
+  if [[ ! -f "${generated_artifact}" ]]; then
+      echo "ERROR: generated artifact ${generated_artifact} not found!" >&2
+      exit 1
   fi
 
-  if [[ ${rc} -ne 0 ]]; then
-    echo "WARNING: toolchain wrapper exited with ${rc} but output was produced for ${stem}." >&2
+  mv "${generated_artifact}" "${BIN_DIR}/"
+
+  if [[ ! -f "${BIN_DIR}/${stem}.${kind}" ]]; then
+      echo "ERROR: expected output ${BIN_DIR}/${stem}.${kind} not found!" >&2
+      ls -lR "${BUILD_DIR}"
+      exit 1
   fi
 
-  if ! cp "${src}" "${BIN_DIR}/"; then
-    echo "ERROR: failed to copy ${src} into ${BIN_DIR}" >&2
-    exit 1
-  fi
-
-  echo "OK: built ${BIN_DIR}/$(basename "${src}")"
+  echo "OK: built ${BIN_DIR}/${stem}.${kind}"
 }
 
-build_one "IdrTestConsole.dpr" "IdrTestConsole"
-build_one "IdrTestGui.dpr" "IdrTestGui"
-build_one "IdrTestDll.dpr" "IdrTestDll"
+build_one "IdrTestConsole.dpr" "IdrTestConsole" "exe"
+build_one "IdrTestGui.dpr"     "IdrTestGui"     "exe"
+build_one "IdrTestDll.dpr"     "IdrTestDll"     "dll"
 
 echo "All IdrTest binaries built into ${BIN_DIR}"

@@ -1,25 +1,14 @@
-Running via Bottles: C:\Program Files\Borland\Delphi7\Bin\DCC32.EXE -B -Q -EZ:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\build\win32 -NZ:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\build\dcu IdrTestConsole.dpr
-[80m16:51:27 [1m(INFO)[0m [36mForcing offline mode[0m [0m
-INFO:root:Config file /home/mark/.var/app/com.usebottles.bottles/data/bottles/bottles/bottles/bottle.yml not found, skipping load
-INFO:root:[36mBottles found:
-	 - IDR-Win32
-	 - BCB6-Win32
-	 - Delphi7-Win32
-[0m
-INFO:root:[36mLaunching an executable…[0m
-WARNING:root:[33mWindows path detected. Avoiding validation.[0m
-INFO:root:[36mUsing Wine path converter -- --unix[0m
-INFO:root:[36mExecuting command: /home/mark/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine winepath --unix ''C:\Program Files\Borland\Delphi7\Bin'[0m
-/bin/sh: -c: line 1: unexpected EOF while looking for matching `''
-INFO:root:[36mUsing Wine Starter -- run[0m
-INFO:root:[36mUsing EasyAntiCheat runtime[0m
-INFO:root:[36mUsing BattlEye runtime[0m
-INFO:root:[36mExecuting command: /home/mark/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine start /wait 'C:\Program Files\Borland\Delphi7\Bin\DCC32.EXE' -B -Q -EZ:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\build\win32 -NZ:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\build\dcu IdrTestConsole.dpr[0m
-wineserver: using server-side synchronization.
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-00e8:err:x11drv:X11DRV_GetCurrentDisplaySettings Failed to get L"\\\\.\\DISPLAY3" current display settings.
+Compiling IdrTestConsole.dpr with Delphi7 toolchain...
+Borland Delphi Version 15.0
+Copyright (c) 1983,2002 Borland Software Corporation
+IdrTestConsole.dpr(1) IdrTestConsole.dpr(1) IdrTestConsole.dpr(1) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) IdrTestConsole.dpr(16) uIdrMarkers.pas(1)     uIdrMarkers.pas(8) uIdrMarkers.pas(42) 
+IdrTestConsole.dpr(16) uCommon.pas(1)         uCommon.pas(6) uCommon.pas(6) uCommon.pas(8) uCommon.pas(63) 
+IdrTestConsole.dpr(16) uTypes.pas(1)          uTypes.pas(6) uTypes.pas(6) uTypes.pas(6) uTypes.pas(8) uTypes.pas(99) 
+IdrTestConsole.dpr(16) uOO.pas(1)             uOO.pas(6) uOO.pas(6) uOO.pas(6) uOO.pas(8) uOO.pas(38) Warning: Method 'DynamicCalc' hides virtual method of base type 'TBase'
+uOO.pas(158) 
+IdrTestConsole.dpr(16) uInterfaces.pas(1)     uInterfaces.pas(6) uInterfaces.pas(6) uInterfaces.pas(8) uInterfaces.pas(91) 
+IdrTestConsole.dpr(16) uExceptions.pas(1)     uExceptions.pas(6) uExceptions.pas(8) uExceptions.pas(56) 
+IdrTestConsole.dpr(16) IdrTestConsole.dpr(18) IdrTestConsole.dpr(61) 
+577 lines, 0.06 seconds, 111700 bytes code, 4025 bytes data.
+Output directory (inside project): build/win32
+OK: built /home/mark/Projects/sandbox-idr/workspace/idr-testcase/delphi/build/win32/IdrTestConsole.exe

@@ -5,6 +5,7 @@ program IdrTestGui;
 
 uses
   Forms,
+  SysUtils, // Added for Exception handling
   uGuiMain in 'uGuiMain.pas' {frmMain},
   uIdrMarkers in 'uIdrMarkers.pas',
   uCommon in 'uCommon.pas',
@@ -14,8 +15,23 @@ uses
   uExceptions in 'uExceptions.pas';
 
 begin
-  Application.Initialize;
-  Application.Title := 'IDR Testcase';
-  Application.CreateForm(TfrmMain, frmMain);
-  Application.Run;
+  try
+    Application.Initialize;
+    Application.Title := 'IDR Testcase';
+    Application.CreateForm(TfrmMain, frmMain);
+    Application.Run;
+  except
+    on E: Exception do
+    begin
+      // Safe logging to file
+      try
+        AssignFile(Output, 'startup_error.log');
+        Rewrite(Output);
+        Writeln(Output, 'Startup Error: ' + E.ClassName + ' - ' + E.Message);
+        CloseFile(Output);
+      except
+      end;
+      Halt(1);
+    end;
+  end;
 end.

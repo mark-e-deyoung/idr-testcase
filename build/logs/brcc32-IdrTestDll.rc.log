@@ -1,5 +1,5 @@
-Running via Bottles: C:\Program Files\Borland\Delphi7\Bin\BRCC32.EXE -r -foZ:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\build\res\IdrTestDll.res Z:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\delphi\IdrTestDll.rc
-[80m16:51:20 [1m(INFO)[0m [36mForcing offline mode[0m [0m
+Running via Bottles: C:\PROGRA~1\Borland\Delphi7\Bin\BRCC32.EXE -r Z:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\delphi\IdrTestDll.rc
+[80m20:03:53 [1m(INFO)[0m [36mForcing offline mode[0m [0m
 INFO:root:Config file /home/mark/.var/app/com.usebottles.bottles/data/bottles/bottles/bottles/bottle.yml not found, skipping load
 INFO:root:[36mBottles found:
 	 - IDR-Win32
@@ -9,17 +9,11 @@ INFO:root:[36mBottles found:
 INFO:root:[36mLaunching an executable…[0m
 WARNING:root:[33mWindows path detected. Avoiding validation.[0m
 INFO:root:[36mUsing Wine path converter -- --unix[0m
-INFO:root:[36mExecuting command: /home/mark/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine winepath --unix ''C:\Program Files\Borland\Delphi7\Bin'[0m
+INFO:root:[36mExecuting command: /home/mark/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine winepath --unix ''C:\PROGRA~1\Borland\Delphi7\Bin'[0m
 /bin/sh: -c: line 1: unexpected EOF while looking for matching `''
 INFO:root:[36mUsing Wine Starter -- run[0m
 INFO:root:[36mUsing EasyAntiCheat runtime[0m
 INFO:root:[36mUsing BattlEye runtime[0m
-INFO:root:[36mExecuting command: /home/mark/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine start /wait 'C:\Program Files\Borland\Delphi7\Bin\BRCC32.EXE' -r -foZ:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\build\res\IdrTestDll.res Z:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\delphi\IdrTestDll.rc[0m
+INFO:root:[36mExecuting command: /home/mark/.var/app/com.usebottles.bottles/data/bottles/runners/soda-9.0-1/bin/wine start /wait 'C:\PROGRA~1\Borland\Delphi7\Bin\BRCC32.EXE' -r Z:\home\mark\Projects\sandbox-idr\workspace\idr-testcase\delphi\IdrTestDll.rc[0m
 wineserver: using server-side synchronization.
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-MESA-INTEL: warning: Haswell Vulkan support is incomplete
-00e8:err:x11drv:X11DRV_GetCurrentDisplaySettings Failed to get L"\\\\.\\DISPLAY3" current display settings.
+WARNING:root:[33mShellExecuteEx exception seems occurred.[0m
