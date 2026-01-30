@@ -46,48 +46,40 @@ All tests include **IDR_FEATURE** markers in code and standardized runtime tags 
 - **Threads**
   - `TThread` subclass + `Resume` + `WaitFor`
 
-## Build (Delphi 7 via Bottles or Wine)
+## Build (Delphi 7 via borland-toolchains container)
 
-The build is driven by `build.sh`, which invokes the Delphi 7 command‑line tools
-inside a Wine environment. It prefers a Bottles bottle, but can fall back to
-plain `wine`.
+The build is driven by `build.sh`, which delegates to
+`scripts/build-binaries.sh` and compiles with the **containerized**
+Delphi 7 toolchain from the `borland-toolchains` project.
 
-### Recommended: Bottles bottle
+### Recommended: sibling borland-toolchains checkout
 
-Assumes you have a Bottles bottle named `Delphi7-Win32` that contains Delphi 7
-in the standard location:
+If you have this workspace layout:
 
-- `C:\Program Files\Borland\Delphi7\Bin\DCC32.EXE`
-- `C:\Program Files\Borland\Delphi7\Bin\BRCC32.EXE`
+```
+workspace/
+  borland-toolchains/
+  idr-testcase/
+```
+
+Then `scripts/build-binaries.sh` auto-detects
+`../borland-toolchains/scripts/delphi7-toolchain.sh`.
 
 Build:
 
 ```bash
 cd ~/Projects/sandbox-idr/workspace/idr-testcase
-chmod +x build.sh run-idr-cli.sh
+chmod +x build.sh scripts/build-binaries.sh run-idr-cli.sh
 ./build.sh
+./build.sh clean   # remove build outputs
 ```
 
-By default this uses:
+### Alternate: toolchain wrapper on PATH
 
-- Bottle name: `Delphi7-Win32` (override with `BOTTLE_NAME=IDR-Win32 ./build.sh`)
-- Delphi tools: the paths above (override with `DCC32_WIN=...` / `BRCC32_WIN=...`)
-
-The script will try to use `bottles-cli run -b "$BOTTLE_NAME" …`; if Bottles
-is not available but `wine` is, it falls back to `wine`.
-
-### Fallback: plain Wine prefix
-
-If you are not using Bottles, set up a Wine prefix with Delphi 7 installed and
-run:
+If you installed the wrapper elsewhere, ensure it is on PATH or set:
 
 ```bash
-export WINEPREFIX="$HOME/.wine-delphi7"
-export DCC32_WIN='C:\Program Files\Borland\Delphi7\Bin\DCC32.EXE'
-export BRCC32_WIN='C:\Program Files\Borland\Delphi7\Bin\BRCC32.EXE'
-
-cd ~/Projects/sandbox-idr/workspace/idr-testcase
-chmod +x build.sh run-idr-cli.sh
+export DELPHI7_TOOLCHAIN=/path/to/borland-toolchains/scripts/delphi7-toolchain.sh
 ./build.sh
 ```
 
