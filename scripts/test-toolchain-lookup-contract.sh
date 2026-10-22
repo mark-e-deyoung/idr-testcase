@@ -13,7 +13,7 @@ mkdir -p "${FIXTURE}/scripts" "${FIXTURE}/delphi" "${TOOLCHAIN}/scripts"
 cp "${SCRIPT_DIR}/build-binaries.sh" "${SCRIPT_DIR}/package-installer.sh" "${FIXTURE}/scripts/"
 chmod +x "${FIXTURE}/scripts/"*.sh
 for stem in IdrTestConsole IdrTestGui IdrTestDll; do
-    printf 'program \%s; begin end.\n' "${stem}" > "${FIXTURE}/delphi/${stem}.dpr"
+    printf 'program %s; begin end.\n' "${stem}" > "${FIXTURE}/delphi/${stem}.dpr"
 done
 
 cat > "${TOOLCHAIN}/scripts/delphi7-toolchain.sh" <<'STUB_COMPILER'
