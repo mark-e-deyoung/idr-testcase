@@ -1,0 +1,34 @@
+name: IDR synthetic E2E contract
+
+on:
+  pull_request:
+    paths:
+      - "scripts/e2e-test.sh"
+      - "scripts/test-e2e-contract.sh"
+      - ".github/workflows/synthetic-e2e-contract.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "scripts/e2e-test.sh"
+      - "scripts/test-e2e-contract.sh"
+      - ".github/workflows/synthetic-e2e-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-e2e:
+    name: License-clean E2E contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source only
+        uses: actions/checkout@v4
+      - name: Parse scripts
+        run: |
+          bash -n scripts/e2e-test.sh
+          bash -n scripts/test-e2e-contract.sh
+      - name: Execute negative and positive synthetic cases
+        run: bash scripts/test-e2e-contract.sh
