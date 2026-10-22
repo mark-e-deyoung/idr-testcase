@@ -40,7 +40,7 @@ TEST_SCRIPT_HOST="${ROOT_DIR}/build/run_test_in_container.sh"
 # Use quoted EOF to prevent host expansion. All vars must be passed as env vars.
 cat > "${TEST_SCRIPT_HOST}" <<'EOF'
 #!/bin/bash
-set -e
+set -euo pipefail
 # WINEPREFIX and other vars are passed from docker env
 
 echo "--- Setting up Wine ---"
@@ -70,19 +70,36 @@ fi
 
 echo "--- Running Console Smoke Test ---"
 cd "${WINEPREFIX}/drive_c/Program Files/${APP_NAME}"
-wine 'IdrTestConsole.exe' > console.log 2>&1 || true
+if timeout --kill-after=5s 30s wine 'IdrTestConsole.exe' > console.log 2>&1; then
+    :
+else
+    rc=$?
+    echo "ERROR: console executable failed (exit ${rc})" >&2
+    cat console.log >&2
+    exit "${rc}"
+fi
 echo "Console Output:"
 cat console.log
 echo "----------------------"
+if ! grep -Fq '[IDR_FEATURE:done] console testcase completed' console.log; then
+    echo "ERROR: console completion marker missing" >&2
+    exit 1
+fi
 
 echo "--- Running Automation Test ---"
 # Run with /automate flag. It should create C:\Program Files\IdrTestcase\idr_test_artifact.txt
 cd "${WINEPREFIX}/drive_c/Program Files/${APP_NAME}"
 # Timeout to prevent hanging if logic fails
-timeout 30s wine 'IdrTestGui.exe' /automate || true
-
-# Give it a moment to write and exit
-sleep 2
+# The installed application runs only in this disposable container.
+# Remove an earlier artifact before the run: existence alone is not completion.
+rm -f idr_test_artifact.txt
+if timeout --kill-after=5s 30s wine 'IdrTestGui.exe' /automate; then
+    :
+else
+    rc=$?
+    echo "ERROR: GUI automation failed (exit ${rc})" >&2
+    exit "${rc}"
+fi
 
 if [ -f 'idr_debug.txt' ]; then
     echo "--- IDR DEBUG LOG ---"
@@ -90,11 +107,11 @@ if [ -f 'idr_debug.txt' ]; then
     echo "---------------------"
 fi
 
-if [ -f 'idr_test_artifact.txt' ]; then
-    echo "SUCCESS: Artifact created."
+if [ -f 'idr_test_artifact.txt' ] && grep -Fxq 'Automated interaction successful.' idr_test_artifact.txt; then
+    echo "SUCCESS: fresh automation artifact contains expected completion text."
     cat 'idr_test_artifact.txt'
 else
-    echo "ERROR: Artifact idr_test_artifact.txt NOT created."
+    echo "ERROR: fresh automation completion artifact missing or invalid."
     ls -l
     exit 1
 fi
