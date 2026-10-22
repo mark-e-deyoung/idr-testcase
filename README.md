@@ -83,6 +83,21 @@ export DELPHI7_TOOLCHAIN=/path/to/borland-toolchains/scripts/delphi7-toolchain.s
 ./build.sh
 ```
 
+When the toolchain repository has a different local directory name, use a
+single explicit checkout root for **both** building and packaging (no symlink or
+repository rename required):
+
+```bash
+export BORLAND_TOOLCHAIN_ROOT=/absolute/path/to/your-existing-toolchain-checkout
+./build.sh
+./scripts/package-installer.sh
+```
+
+`DELPHI7_TOOLCHAIN` remains the highest-priority compiler wrapper override.
+`INNOSETUP_PACKAGER` can separately specify the full executable path to the
+Inno Setup wrapper. Both scripts retain the historical sibling lookup when
+these variables are unset. Keep licensed snapshots and packaged outputs local.
+
 Outputs are placed in `build/win32/` and logs in `build/logs/`.
 
 ## Run IDR CLI (best-effort probing)
