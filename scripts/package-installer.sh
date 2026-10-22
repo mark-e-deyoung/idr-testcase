@@ -13,8 +13,16 @@ BIN_DIR="${BUILD_DIR}/win32"
 INSTALLER_DIR="${BUILD_DIR}/installer"
 DIST_DIR="${INSTALLER_DIR}/dist"
 
-# Toolchain paths
-IS_PACKAGER="${ROOT_DIR}/../borland-toolchains/scripts/innosetup-packager.sh"
+# Prefer an explicit toolchain checkout (its local directory name may vary).
+# Keep the historical sibling checkout default for existing installations.
+IS_PACKAGER="${INNOSETUP_PACKAGER:-}"
+if [[ -z "${IS_PACKAGER}" ]]; then
+  TOOLCHAIN_ROOT="${BORLAND_TOOLCHAIN_ROOT:-${ROOT_DIR}/../borland-toolchains}"
+  IS_PACKAGER="${TOOLCHAIN_ROOT%/}/scripts/innosetup-packager.sh"
+fi
+if [[ "${IS_PACKAGER}" == */* && "${IS_PACKAGER}" != /* ]]; then
+  IS_PACKAGER="${ROOT_DIR}/${IS_PACKAGER}"
+fi
 
 if [[ ! -x "${IS_PACKAGER}" ]]; then
   echo "ERROR: innosetup-packager.sh not found at ${IS_PACKAGER}" >&2
