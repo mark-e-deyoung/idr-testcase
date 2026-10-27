@@ -3,6 +3,8 @@ name: IDR synthetic E2E contract
 on:
   pull_request:
     paths:
+      - "build.sh"
+      - "scripts/test-clean-refusal-contract.sh"
       - "scripts/e2e-test.sh"
       - "scripts/test-e2e-contract.sh"
       - ".github/workflows/synthetic-e2e-contract.yml"
@@ -32,3 +34,8 @@ jobs:
           bash -n scripts/test-e2e-contract.sh
       - name: Execute negative and positive synthetic cases
         run: bash scripts/test-e2e-contract.sh
+      - name: Verify non-destructive cleanup contract
+        run: |
+          bash -n build.sh
+          bash -n scripts/test-clean-refusal-contract.sh
+          bash scripts/test-clean-refusal-contract.sh
