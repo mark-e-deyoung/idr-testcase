@@ -3,6 +3,8 @@ name: IDR synthetic toolchain lookup
 on:
   pull_request:
     paths:
+      - "build.sh"
+      - "scripts/test-clean-refusal-contract.sh"
       - "scripts/build-binaries.sh"
       - "scripts/package-installer.sh"
       - "scripts/test-toolchain-lookup-contract.sh"
