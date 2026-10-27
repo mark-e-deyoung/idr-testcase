@@ -28,7 +28,9 @@ rm -f "${BIN_DIR}"/*.exe "${BIN_DIR}"/*.dll
 # sibling borland-toolchains checkout (common in this workspace layout).
 DELPHI7_TOOLCHAIN="${DELPHI7_TOOLCHAIN:-}"
 if [[ -z "${DELPHI7_TOOLCHAIN}" ]]; then
-  if command -v delphi7-toolchain.sh >/dev/null 2>&1; then
+  if [[ -n "${BORLAND_TOOLCHAIN_ROOT:-}" ]]; then
+    DELPHI7_TOOLCHAIN="${BORLAND_TOOLCHAIN_ROOT%/}/scripts/delphi7-toolchain.sh"
+  elif command -v delphi7-toolchain.sh >/dev/null 2>&1; then
     DELPHI7_TOOLCHAIN="delphi7-toolchain.sh"
   elif [[ -x "${ROOT_DIR}/../borland-toolchains/scripts/delphi7-toolchain.sh" ]]; then
     DELPHI7_TOOLCHAIN="${ROOT_DIR}/../borland-toolchains/scripts/delphi7-toolchain.sh"
