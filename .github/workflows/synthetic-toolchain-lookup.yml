@@ -1,0 +1,39 @@
+name: IDR synthetic toolchain lookup
+
+on:
+  pull_request:
+    paths:
+      - "build.sh"
+      - "scripts/test-clean-refusal-contract.sh"
+      - "scripts/build-binaries.sh"
+      - "scripts/package-installer.sh"
+      - "scripts/test-toolchain-lookup-contract.sh"
+      - ".github/workflows/synthetic-toolchain-lookup.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "scripts/build-binaries.sh"
+      - "scripts/package-installer.sh"
+      - "scripts/test-toolchain-lookup-contract.sh"
+      - ".github/workflows/synthetic-toolchain-lookup.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-toolchain:
+    name: License-clean wrapper lookup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source only
+        uses: actions/checkout@v4
+      - name: Parse scripts
+        run: |
+          bash -n scripts/build-binaries.sh
+          bash -n scripts/package-installer.sh
+          bash -n scripts/test-toolchain-lookup-contract.sh
+      - name: Validate path and override contract
+        run: bash scripts/test-toolchain-lookup-contract.sh
