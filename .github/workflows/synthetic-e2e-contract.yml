@@ -12,6 +12,8 @@ on:
     branches:
       - master
     paths:
+      - "build.sh"
+      - "scripts/test-clean-refusal-contract.sh"
       - "scripts/e2e-test.sh"
       - "scripts/test-e2e-contract.sh"
       - ".github/workflows/synthetic-e2e-contract.yml"
