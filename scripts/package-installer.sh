@@ -29,53 +29,41 @@ if [[ ! -x "${IS_PACKAGER}" ]]; then
   exit 1
 fi
 
-mkdir -p "${INSTALLER_DIR}" "${DIST_DIR}"
-
 APP_NAME="IdrTestcase"
 APP_VERSION="1.1"
 OUTPUT_BASE="IdrTestcase-Setup"
-
-echo "Creating Inno Setup script..."
-cat > "${INSTALLER_DIR}/${APP_NAME}.iss" <<EOF
-[Setup]
-AppName=${APP_NAME}
-AppVersion=${APP_VERSION}
-DefaultDirName={pf}\\${APP_NAME}
-OutputDir=dist
-OutputBaseFilename=${OUTPUT_BASE}
-Compression=lzma2
-SolidCompression=yes
-DisableReadyMemo=yes
-; Require admin for Program Files
-PrivilegesRequired=admin
-
-[Files]
-Source: "${BIN_DIR}/IdrTestGui.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "${BIN_DIR}/IdrTestConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "${BIN_DIR}/IdrTestDll.dll"; DestDir: "{app}"; Flags: ignoreversion
-
-[Run]
-; No auto-run, we run manually in tests
-EOF
-
-echo "Building installer..."
-
-# We need to run the packager from a directory that contains or can access the source files.
-# The IS_PACKAGER script mounts the current directory as /work.
-# Our source files are in BIN_DIR (absolute path).
-# Inno Setup in the container sees /work.
-# We should run from INSTALLER_DIR, but the [Files] Source paths are absolute host paths?
-# No, Inno Setup running in Wine inside Docker won't see host absolute paths unless mapped.
-# 
-# Best approach: Copy binaries to INSTALLER_DIR/src so everything is relative.
-
 SRC_DIR="${INSTALLER_DIR}/src"
-rm -rf "${SRC_DIR}"
-mkdir -p "${SRC_DIR}"
-cp "${BIN_DIR}"/* "${SRC_DIR}/"
+ISS_PATH="${INSTALLER_DIR}/${APP_NAME}.iss"
+INSTALLER_PATH="${DIST_DIR}/${OUTPUT_BASE}.exe"
 
-# Update ISS to use relative paths
-cat > "${INSTALLER_DIR}/${APP_NAME}.iss" <<EOF
+# Package only already produced, rights-cleared inputs in an owned disposable
+# workcell. Refuse existing staged files and installers instead of deleting them.
+for parent in "${BUILD_DIR}" "${BIN_DIR}" "${INSTALLER_DIR}" "${DIST_DIR}"; do
+  if [[ -L "${parent}" ]]; then
+    echo "IDR_PACKAGE_REFUSED reason=symlinked_parent action=none" >&2
+    exit 2
+  fi
+done
+for item in "${SRC_DIR}" "${ISS_PATH}" "${INSTALLER_PATH}"; do
+  if [[ -e "${item}" || -L "${item}" ]]; then
+    echo "IDR_PACKAGE_REFUSED reason=existing_output action=none" >&2
+    exit 2
+  fi
+done
+for artifact in IdrTestGui.exe IdrTestConsole.exe IdrTestDll.dll; do
+  if [[ ! -f "${BIN_DIR}/${artifact}" || -L "${BIN_DIR}/${artifact}" ]]; then
+    echo "IDR_PACKAGE_REFUSED reason=missing_or_symlinked_input action=none" >&2
+    exit 2
+  fi
+done
+
+mkdir -p "${INSTALLER_DIR}" "${DIST_DIR}"
+mkdir "${SRC_DIR}" || { echo "IDR_PACKAGE_REFUSED reason=staging_create_failed action=none" >&2; exit 2; }
+for artifact in IdrTestGui.exe IdrTestConsole.exe IdrTestDll.dll; do
+  cp -- "${BIN_DIR}/${artifact}" "${SRC_DIR}/${artifact}"
+done
+
+cat > "${ISS_PATH}" <<EOF
 [Setup]
 AppName=${APP_NAME}
 AppVersion=${APP_VERSION}
@@ -93,11 +81,10 @@ Source: "src\\IdrTestConsole.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "src\\IdrTestDll.dll"; DestDir: "{app}"; Flags: ignoreversion
 EOF
 
+echo "Building installer with an already admitted packager image..."
 pushd "${INSTALLER_DIR}" >/dev/null
 
-# Build the packager image if needed (idempotent usually)
-"${IS_PACKAGER}" image-build
-
+# No implicit image-build. Image provisioning is a separately admitted operation.
 # Compile
 "${IS_PACKAGER}" compile "${APP_NAME}.iss" --payload-image --dist "dist"
 

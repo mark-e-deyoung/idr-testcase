@@ -20,8 +20,26 @@ BUILD_DIR="${ROOT_DIR}/build"
 BIN_DIR="${BUILD_DIR}/win32"
 LOG_DIR="${BUILD_DIR}/logs"
 
+
+# These paths may contain tracked original binaries, uncommitted edits and human
+# logs. An ordinary build must never delete, restore or overwrite them.
+# Build on a newly provisioned disposable workcell with absent outputs.
+for parent in "${BUILD_DIR}" "${BIN_DIR}" "${LOG_DIR}" "${DELPHI_DIR}/build" "${DELPHI_DIR}/build/win32"; do
+  if [[ -L "${parent}" ]]; then
+    echo "IDR_BUILD_REFUSED reason=symlinked_parent action=none" >&2
+    exit 2
+  fi
+done
+for item in \
+  "${BIN_DIR}/IdrTestConsole.exe" "${BIN_DIR}/IdrTestGui.exe" "${BIN_DIR}/IdrTestDll.dll" \
+  "${DELPHI_DIR}/build/win32/IdrTestConsole.exe" "${DELPHI_DIR}/build/win32/IdrTestGui.exe" "${DELPHI_DIR}/build/win32/IdrTestDll.dll" \
+  "${LOG_DIR}/IdrTestConsole.log" "${LOG_DIR}/IdrTestGui.log" "${LOG_DIR}/IdrTestDll.log"; do
+  if [[ -e "${item}" || -L "${item}" ]]; then
+    echo "IDR_BUILD_REFUSED reason=existing_output action=none" >&2
+    exit 2
+  fi
+done
 mkdir -p "${BIN_DIR}" "${LOG_DIR}"
-rm -f "${BIN_DIR}"/*.exe "${BIN_DIR}"/*.dll
 
 
 # Resolve the toolchain wrapper. Prefer an explicit env var, then PATH, then a
