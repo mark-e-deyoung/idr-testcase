@@ -18,6 +18,7 @@ type
     FLoadedCount: Integer;
   protected
     procedure Loaded; override;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
   public
     property LoadedCount: Integer read FLoadedCount;
   end;
@@ -26,6 +27,15 @@ procedure TProbeRoot.Loaded;
 begin
   inherited Loaded;
   Inc(FLoadedCount);
+end;
+{ Only the declared children are eligible for streaming. The base TComponent
+  implementation does NOT enumerate owned children by itself. }
+procedure TProbeRoot.GetChildren(Proc: TGetChildProc; Root: TComponent);
+var I: Integer;
+begin
+  if Root = Self then
+    for I := 0 to ComponentCount - 1 do
+      Proc(Components[I]);
 end;
 procedure Require(Condition: Boolean; const Detail: string);
 begin
