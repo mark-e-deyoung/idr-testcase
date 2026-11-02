@@ -52,34 +52,23 @@ The build is driven by `build.sh`, which delegates to
 `scripts/build-binaries.sh` and compiles with the **containerized**
 Delphi 7 toolchain from the `borland-toolchains` project.
 
-### Recommended: sibling borland-toolchains checkout
+### Build admission and source custody
 
-If you have this workspace layout:
+**Current authority:** [private Delphi/C++Builder recovery DLE #5](https://github.com/mark-e-deyoung/borland-container-packager/issues/5). This public repository already tracks historical EXE, DLL, DCU, and RES files. Their independent binary provenance/redistribution rights and licensed compiler inputs are **not** cleared by the synthetic workflow results. Do not publish, package, or move them into public runners or cloud images.
 
-```
-workspace/
-  borland-toolchains/
-  idr-testcase/
-```
+The `build.sh clean` and `build.sh --clean` commands now **refuse** with `IDR_CLEAN_REFUSED` and status 2; `build.sh clean-plan` only reports planned scope. Ordinary `build.sh` also refuses if the expected build artifacts or logs already exist (`IDR_BUILD_REFUSED`); the packager refuses existing staging, manifests, installer output or symlinked inputs (`IDR_PACKAGE_REFUSED`). No toolchain or installer command should silently overwrite historical tracked binaries or a human's uncommitted work.
 
-Then `scripts/build-binaries.sh` auto-detects
-`../borland-toolchains/scripts/delphi7-toolchain.sh`.
+A real build requires a separately **admitted sovereign/local actor**, compatible licensed and rights-cleared Delphi 7 / Inno Setup toolchains, a pinned image identity, and a **new positively owned disposable source-only workcell with initially absent outputs**. Prepare it from an independently verified source manifest. A plain clone of this repository includes tracked historical build artifacts and is **not** a fresh output workcell; never use `git clean`, `git restore`, `rm -rf`, or destructive scripted cleanup as a workaround. Do not assume local host paths or worktree cleanliness from GitHub.
 
-Build:
-
-```bash
-cd ~/Projects/sandbox-idr/workspace/idr-testcase
-chmod +x build.sh scripts/build-binaries.sh run-idr-cli.sh
-./build.sh
-./build.sh clean   # remove build outputs
-```
+For historical compatibility, `scripts/build-binaries.sh` can locate a sibling `../borland-toolchains/scripts/delphi7-toolchain.sh` when neither explicit override nor a wrapper on `PATH` is supplied. Verify the actual current checkout rather than renaming or replacing local trees.
 
 ### Alternate: toolchain wrapper on PATH
 
 If you installed the wrapper elsewhere, ensure it is on PATH or set:
 
 ```bash
-export DELPHI7_TOOLCHAIN=/path/to/borland-toolchains/scripts/delphi7-toolchain.sh
+export DELPHI7_TOOLCHAIN=/path/to/existing-approved-toolchain/scripts/delphi7-toolchain.sh
+# In an admitted, fresh source-only disposable workcell only:
 ./build.sh
 ```
 
@@ -88,7 +77,8 @@ single explicit checkout root for **both** building and packaging (no symlink or
 repository rename required):
 
 ```bash
-export BORLAND_TOOLCHAIN_ROOT=/absolute/path/to/your-existing-toolchain-checkout
+export BORLAND_TOOLCHAIN_ROOT=/absolute/path/to/your-existing-approved-toolchain-checkout
+# In an admitted, fresh source-only disposable workcell only:
 ./build.sh
 ./scripts/package-installer.sh
 ```
@@ -96,9 +86,13 @@ export BORLAND_TOOLCHAIN_ROOT=/absolute/path/to/your-existing-toolchain-checkout
 `DELPHI7_TOOLCHAIN` remains the highest-priority compiler wrapper override.
 `INNOSETUP_PACKAGER` can separately specify the full executable path to the
 Inno Setup wrapper. Both scripts retain the historical sibling lookup when
-these variables are unset. Keep licensed snapshots and packaged outputs local.
+these variables are unset. The packager no longer implicitly builds an image;
+image provisioning requires separate admission. Keep licensed snapshots and
+packaged outputs on approved sovereign/local custody surfaces.
 
-Outputs are placed in `build/win32/` and logs in `build/logs/`.
+Outputs are placed in `build/win32/` and logs in `build/logs/` in the
+owned workcell only. The public CI contracts use fake compiler/installer
+stand-ins; a successful synthetic run is not Delphi/Wine/installer qualification.
 
 ## Run IDR CLI (best-effort probing)
 

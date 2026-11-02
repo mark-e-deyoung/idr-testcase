@@ -137,8 +137,40 @@ grep -Fq 'IDR_PACKAGE_REFUSED reason=existing_output action=none' "${TMP}/iss-re
 [[ "$(cat "${ISS_FIXTURE}/build/installer/IdrTestcase.iss")" == do-not-overwrite ]]
 echo "PASS: existing ISS preserved"
 
+# 8. Symlinked binary output directory cannot redirect writes outside workcell.
+LINK_BUILD_FIXTURE="${TMP}/linked-build-fixture"
+fresh_fixture "${LINK_BUILD_FIXTURE}"
+mkdir -p "${LINK_BUILD_FIXTURE}/build" "${TMP}/protected-build"
+printf 'protected\n' > "${TMP}/protected-build/proof.txt"
+ln -s "${TMP}/protected-build" "${LINK_BUILD_FIXTURE}/build/win32"
+rc=0
+BORLAND_TOOLCHAIN_ROOT="${TOOLCHAIN}" \
+    bash "${LINK_BUILD_FIXTURE}/scripts/build-binaries.sh" > "${TMP}/linked-build-refusal.log" 2>&1 || rc=$?
+[[ "${rc}" == 2 ]] || { echo "FAIL: symlinked output not refused" >&2; exit 1; }
+grep -Fq 'IDR_BUILD_REFUSED reason=symlinked_parent action=none' "${TMP}/linked-build-refusal.log"
+[[ "$(cat "${TMP}/protected-build/proof.txt")" == protected ]]
+[[ ! -e "${TMP}/protected-build/IdrTestConsole.exe" ]]
+echo "PASS: symlinked build output refused without outside write"
+
+# 9. Installer input may not be a symlink to an external binary.
+LINK_PACKAGE_FIXTURE="${TMP}/linked-package-fixture"
+fresh_fixture "${LINK_PACKAGE_FIXTURE}"
+mkdir -p "${LINK_PACKAGE_FIXTURE}/build/win32"
+cp "${FIXTURE}/build/win32/"*.exe "${FIXTURE}/build/win32/"*.dll "${LINK_PACKAGE_FIXTURE}/build/win32/"
+printf 'external-binary-sentinel\n' > "${TMP}/external-source.exe"
+rm -f -- "${LINK_PACKAGE_FIXTURE}/build/win32/IdrTestGui.exe"
+ln -s "${TMP}/external-source.exe" "${LINK_PACKAGE_FIXTURE}/build/win32/IdrTestGui.exe"
+rc=0
+BORLAND_TOOLCHAIN_ROOT="${TOOLCHAIN}" \
+    bash "${LINK_PACKAGE_FIXTURE}/scripts/package-installer.sh" > "${TMP}/linked-package-refusal.log" 2>&1 || rc=$?
+[[ "${rc}" == 2 ]] || { echo "FAIL: symlinked installer input not refused" >&2; exit 1; }
+grep -Fq 'IDR_PACKAGE_REFUSED reason=missing_or_symlinked_input action=none' "${TMP}/linked-package-refusal.log"
+[[ "$(cat "${TMP}/external-source.exe")" == external-binary-sentinel ]]
+[[ ! -e "${LINK_PACKAGE_FIXTURE}/build/installer/src" ]]
+echo "PASS: symlinked installer input refused without staging"
+
 if grep -Fq 'packager:image-build' "${MOCK_TRACE}"; then
     echo "FAIL: implicit image-build attempted" >&2
     exit 1
 fi
-echo "PASS: 7/7 synthetic toolchain and source-custody checks (NOT compiler qualification)"
+echo "PASS: 9/9 synthetic toolchain and source-custody checks (NOT compiler qualification)"
