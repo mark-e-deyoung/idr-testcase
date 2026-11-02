@@ -1,0 +1,49 @@
+name: FPC clean-room source-only probe
+
+on:
+  pull_request:
+    paths:
+      - 'compat/fpc/**'
+      - '.github/workflows/fpc-cleanroom.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fpc-streaming:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Fetch one original Pascal source file (no Git checkout)
+        shell: bash
+        env:
+          SRC_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SRC_SHA" =~ ^[0-9a-f]{40}$ ]]
+          curl --fail --location --silent --show-error --retry 2 \
+            "https://raw.githubusercontent.com/mark-e-deyoung/idr-testcase/$SRC_SHA/compat/fpc/stream_probe.pas" \
+            --output "$RUNNER_TEMP/stream_probe.pas"
+          grep -Fq 'Original clean-room code.' "$RUNNER_TEMP/stream_probe.pas"
+          echo "PASS source-only acquisition: no repository checkout"
+      - name: Install official FPC 3.2.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends fp-compiler
+          test "$(fpc -iV)" = "3.2.2"
+          fpc -iV
+      - name: Compile and verify four behavioral witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/fpc-bin" "$RUNNER_TEMP/fpc-units"
+          fpc -Mdelphi -B -FE"$RUNNER_TEMP/fpc-bin" -FU"$RUNNER_TEMP/fpc-units" "$RUNNER_TEMP/stream_probe.pas"
+          "$RUNNER_TEMP/fpc-bin/stream_probe" | tee "$RUNNER_TEMP/fpc-classes.log"
+          grep -Fxq 'PASS owner-lifecycle' "$RUNNER_TEMP/fpc-classes.log"
+          grep -Fxq 'PASS published-rtti' "$RUNNER_TEMP/fpc-classes.log"
+          grep -Fxq 'PASS component-stream-roundtrip' "$RUNNER_TEMP/fpc-classes.log"
+          grep -Fxq 'PASS unknown-class-negative' "$RUNNER_TEMP/fpc-classes.log"
+          grep -Fxq 'PASS 4/4 FPC clean-room behavioral probes (NOT Delphi VCL parity)' "$RUNNER_TEMP/fpc-classes.log"
+          echo 'PASS four clean-room FPC witness classes'
