@@ -18,6 +18,14 @@ INSTALLER_PATH="${ROOT_DIR}/build/installer/dist/${APP_NAME}-Setup.exe"
 TEST_PREFIX="/tmp/idr-e2e"
 TEST_IMAGE="delphi7-toolchain:latest"
 
+# Refuse human-owned/stale host driver before invoking build or packaging.
+TEST_SCRIPT_HOST="${ROOT_DIR}/build/run_test_in_container.sh"
+if [[ -L "${ROOT_DIR}/build" || -L "${TEST_SCRIPT_HOST}" ||
+      -e "${TEST_SCRIPT_HOST}" ]]; then
+    echo "IDR_E2E_REFUSED reason=existing_or_symlinked_host_script action=none" >&2
+    exit 2
+fi
+
 echo "=== Step 1: Building Binaries ==="
 "${SCRIPT_DIR}/build-binaries.sh"
 
@@ -35,7 +43,8 @@ INSTALLER_DIR="$(dirname "${INSTALLER_PATH}")"
 INSTALLER_NAME="$(basename "${INSTALLER_PATH}")"
 
 # Create a temporary test script to run inside the container
-TEST_SCRIPT_HOST="${ROOT_DIR}/build/run_test_in_container.sh"
+# Checked before any build. Noclobber also closes overwrite on a racing file.
+set -o noclobber
 
 # Use quoted EOF to prevent host expansion. All vars must be passed as env vars.
 cat > "${TEST_SCRIPT_HOST}" <<'EOF'
@@ -128,6 +137,7 @@ fi
 echo "--- E2E Test Script Completed ---"
 EOF
 
+set +o noclobber
 chmod +x "${TEST_SCRIPT_HOST}"
 
 docker run --rm \

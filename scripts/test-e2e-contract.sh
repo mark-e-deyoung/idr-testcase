@@ -94,8 +94,33 @@ run_case gui_missing 1 true
 run_case gui_bad 1
 run_case success 0
 
+# A human-owned host script must be preserved before build, packaging or Docker.
+HOST_WORK="$TMP/host-script-refusal"
+mkdir -p "$HOST_WORK/scripts" "$HOST_WORK/build"
+cp "$SCRIPT_DIR/e2e-test.sh" "$HOST_WORK/scripts/e2e-test.sh"
+printf 'human-owned-script\n' > "$HOST_WORK/build/run_test_in_container.sh"
+cat > "$MOCK_BIN/docker" <<'MOCK_DOCKER'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'docker-invoked\n' >> "$GUARD_TRACE"
+exit 99
+MOCK_DOCKER
+chmod +x "$MOCK_BIN/docker"
+host_rc=0
+PATH="$MOCK_BIN:$PATH" GUARD_TRACE="$TMP/docker-guard-trace.log" \
+  bash "$HOST_WORK/scripts/e2e-test.sh" > "$TMP/host-script-refusal.log" 2>&1 || host_rc=$?
+if [[ "$host_rc" -eq 2 ]] &&
+   grep -Fq 'IDR_E2E_REFUSED reason=existing_or_symlinked_host_script action=none' "$TMP/host-script-refusal.log" &&
+   [[ "$(cat "$HOST_WORK/build/run_test_in_container.sh")" == human-owned-script ]] &&
+   [[ ! -e "$TMP/docker-guard-trace.log" ]]; then
+    echo "PASS preexisting-host-script-refusal (status 2; no build or Docker)"
+else
+    echo "FAIL preexisting-host-script-refusal (status $host_rc)" >&2
+    failures=$((failures + 1))
+fi
+
 if [[ "${failures}" -ne 0 ]]; then
     echo "FAIL: ${failures} synthetic E2E contract checks" >&2
     exit 1
 fi
-echo "PASS: 6/6 synthetic E2E contract checks (NOT product qualification)"
+echo "PASS: 7/7 synthetic E2E contract checks (NOT product qualification)"
