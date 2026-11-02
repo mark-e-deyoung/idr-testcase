@@ -3,9 +3,22 @@ set -euo pipefail
 
 # License-clean synthetic qualification of toolchain wrapper discovery only.
 # Everything lives in a disposable directory; no Borland/Wine/Docker binaries.
+# A previous source-hardening commit accidentally removed executable mode from
+# wrappers; validate the exact Git index as a separate non-runtime preflight.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "${TMP}"' EXIT
+
+# The checked-out wrapper scripts must stay executable, not merely Bash-parsable.
+# This check fails on historical 100644 regression even when tests call bash.
+for tracked in scripts/build-binaries.sh scripts/package-installer.sh build.sh; do
+    mode="$(git -C "${SCRIPT_DIR}/.." ls-files -s -- "${tracked}" | awk '{print $1}')"
+    if [[ "${mode}" != 100755 ]]; then
+        echo "FAIL: ${tracked} must have Git executable mode 100755 (observed ${mode:-missing})" >&2
+        exit 1
+    fi
+done
+echo "PASS: 3/3 executable Git modes retained"
 
 FIXTURE="${TMP}/idr-testcase"
 TOOLCHAIN="${TMP}/actual-toolchain"
