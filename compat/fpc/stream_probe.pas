@@ -132,6 +132,24 @@ begin
     ReadR.Free; Orig.Free; M.Free;
   end;
 end;
+procedure CheckUnknownProperty;
+var T: TStringStream; M: TMemoryStream;
+    C: TComponent; Rejected: Boolean;
+begin
+  T := TStringStream.Create('object UnknownPropertyRoot: TProbeRoot' +
+    LineEnding + '  NotPublishedHere = 7' + LineEnding +
+    'end' + LineEnding);
+  M := TMemoryStream.Create;
+  try
+    ObjectTextToBinary(T, M); M.Position := 0;
+    Rejected := False; C := nil;
+    try C := M.ReadComponent(nil);
+    except on E: Exception do Rejected := True; end;
+    C.Free;
+    Require(Rejected, 'unknown published property must fail');
+  finally M.Free; T.Free; end;
+  WriteLn('PASS unknown-property-negative');
+end;
 procedure CheckUnknownClass;
 var T: TStringStream; M: TMemoryStream;
     C: TComponent; Rejected: Boolean;
@@ -151,6 +169,6 @@ begin
 end;
 begin
   RegisterClass(TProbeRoot); RegisterClass(TProbeNode);
-  CheckOwner; CheckRtti; CheckStream; CheckForwardReference; CheckUnknownClass;
-  WriteLn('PASS 5/5 FPC clean-room behavioral probes (NOT Delphi VCL parity)');
+  CheckOwner; CheckRtti; CheckStream; CheckForwardReference; CheckUnknownProperty; CheckUnknownClass;
+  WriteLn('PASS 6/6 FPC clean-room behavioral probes (NOT Delphi VCL parity)');
 end.
