@@ -105,6 +105,19 @@ cat > "$MOCK_BIN/docker" <<'MOCK_DOCKER'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'docker-invoked\n' >> "$GUARD_TRACE"
+if [[ "${SIM_DOCKER_MUTATE:-no}" == yes ]]; then
+    found=no
+    for arg in "$@"; do
+        if [[ "$arg" == *":/run_test.sh:ro" ]]; then
+            host_script="${arg%:/run_test.sh:ro}"
+            [[ -f "$host_script" && ! -L "$host_script" ]]
+            printf 'external-update-preserve\n' >> "$host_script"
+            found=yes
+            break
+        fi
+    done
+    [[ "$found" == yes ]] || exit 98
+fi
 exit "${SIM_DOCKER_RC:-99}"
 MOCK_DOCKER
 chmod +x "$MOCK_BIN/docker"
@@ -141,12 +154,20 @@ printf 'mock-installer-not-an-executable\n' > "${root}/build/installer/dist/IdrT
 FAKE_PACKAGE
 chmod +x "${LIFECYCLE_WORK}/scripts/build-binaries.sh" "${LIFECYCLE_WORK}/scripts/package-installer.sh"
 run_host_lifecycle() {
-    local label="$1" expected="$2" rc=0
-    PATH="${MOCK_BIN}:${PATH}" GUARD_TRACE="${LIFECYCLE_WORK}/docker.calls" SIM_DOCKER_RC="${expected}" \
+    local label="$1" expected="$2" preserve="${3:-no}" rc=0
+    PATH="${MOCK_BIN}:${PATH}" GUARD_TRACE="${LIFECYCLE_WORK}/docker.calls" SIM_DOCKER_RC="${expected}" SIM_DOCKER_MUTATE="${preserve}" \
       bash "${LIFECYCLE_WORK}/scripts/e2e-test.sh" > "${LIFECYCLE_WORK}/${label}.log" 2>&1 || rc=$?
-    if [[ "${rc}" -eq "${expected}" &&
-          ! -e "${LIFECYCLE_WORK}/build/run_test_in_container.sh" &&
-          ! -L "${LIFECYCLE_WORK}/build/run_test_in_container.sh" ]] &&
+    local script="${LIFECYCLE_WORK}/build/run_test_in_container.sh" 
+    local ownership_ok=no
+    if [[ "${preserve}" == yes ]]; then
+        if [[ -f "${script}" && ! -L "${script}" ]] &&
+           grep -Fxq 'external-update-preserve' "${script}"; then
+            ownership_ok=yes
+        fi
+    elif [[ ! -e "${script}" && ! -L "${script}" ]]; then
+        ownership_ok=yes
+    fi
+    if [[ "${rc}" -eq "${expected}" && "${ownership_ok}" == yes ]] &&
           grep -Fq '=== Step 3: Running E2E Test in Container ===' "${LIFECYCLE_WORK}/${label}.log"; then
         printf 'PASS host-script-lifecycle-%s (status %s; owned driver cleaned)\n' "${label}" "${rc}"
         passed=$((passed + 1))
@@ -158,9 +179,12 @@ run_host_lifecycle() {
 run_host_lifecycle first-success 0
 run_host_lifecycle repeat-success 0
 run_host_lifecycle docker-failure 49
+# A foreign modification during Docker must not be mistaken for an owned
+# unchanged driver, even when Docker itself returns a known failure code.
+run_host_lifecycle docker-modified-driver 49 yes
 
-if [[ "${failures}" -ne 0 || "${passed}" -ne 10 ]]; then
-    echo "FAIL: ${passed}/10 passed, ${failures} failed synthetic E2E contract checks" >&2
+if [[ "${failures}" -ne 0 || "${passed}" -ne 11 ]]; then
+    echo "FAIL: ${passed}/11 passed, ${failures} failed synthetic E2E contract checks" >&2
     exit 1
 fi
-echo "PASS: ${passed}/10 synthetic E2E contract checks (NOT product qualification)"
+echo "PASS: ${passed}/11 synthetic E2E contract checks (NOT product qualification)"
