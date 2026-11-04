@@ -9,9 +9,11 @@ type
   private
     FValue: Integer;
     FOnSignal: TNotifyEvent;
+    FPeer: TProbeNode;
   published
     property Value: Integer read FValue write FValue;
     property OnSignal: TNotifyEvent read FOnSignal write FOnSignal;
+    property Peer: TProbeNode read FPeer write FPeer;
   end;
   TProbeRoot = class(TComponent)
   private
@@ -95,6 +97,41 @@ begin
     WriteLn('TRACE loaded-count=', ReadR.LoadedCount);
   finally ReadR.Free; Orig.Free; M.Free; end;
 end;
+procedure CheckForwardReference;
+var Orig, ReadR: TProbeRoot;
+    Earlier, Later, ReadEarlier, ReadLater: TProbeNode;
+    M: TMemoryStream; C: TComponent;
+begin
+  Orig := TProbeRoot.Create(nil); M := TMemoryStream.Create;
+  ReadR := nil;
+  try
+    Orig.Name := 'ForwardRoot';
+    Earlier := TProbeNode.Create(Orig);
+    Earlier.Name := 'Earlier';
+    Later := TProbeNode.Create(Orig);
+    Later.Name := 'Later'; Later.Value := 73;
+    Earlier.Peer := Later;
+    Require(Orig.Components[0] = Earlier, 'earlier child is streamed first');
+    M.WriteComponent(Orig);
+    Require(M.Size > 0, 'forward-reference stream nonempty');
+    M.Position := 0;
+    C := M.ReadComponent(nil);
+    Require(C is TProbeRoot, 'forward-reference root class');
+    ReadR := TProbeRoot(C);
+    C := ReadR.FindComponent('Earlier');
+    Require(C is TProbeNode, 'forward-reference earlier decoded');
+    ReadEarlier := TProbeNode(C);
+    C := ReadR.FindComponent('Later');
+    Require(C is TProbeNode, 'forward-reference later decoded');
+    ReadLater := TProbeNode(C);
+    Require(ReadLater.Value = 73, 'forward-reference target value');
+    Require(ReadEarlier.Peer = ReadLater, 'forward-reference property fixed up');
+    Require(ReadR.LoadedCount = 1, 'forward-reference root Loaded exactly once');
+    WriteLn('PASS forward-reference-fixup');
+  finally
+    ReadR.Free; Orig.Free; M.Free;
+  end;
+end;
 procedure CheckUnknownClass;
 var T: TStringStream; M: TMemoryStream;
     C: TComponent; Rejected: Boolean;
@@ -114,6 +151,6 @@ begin
 end;
 begin
   RegisterClass(TProbeRoot); RegisterClass(TProbeNode);
-  CheckOwner; CheckRtti; CheckStream; CheckUnknownClass;
-  WriteLn('PASS 4/4 FPC clean-room behavioral probes (NOT Delphi VCL parity)');
+  CheckOwner; CheckRtti; CheckStream; CheckForwardReference; CheckUnknownClass;
+  WriteLn('PASS 5/5 FPC clean-room behavioral probes (NOT Delphi VCL parity)');
 end.
