@@ -139,7 +139,7 @@ FAKE_PACKAGE
 chmod +x "${LIFECYCLE_WORK}/scripts/build-binaries.sh" "${LIFECYCLE_WORK}/scripts/package-installer.sh"
 run_host_lifecycle() {
     local label="$1" expected="$2" rc=0
-    PATH="${MOCK_BIN}:${PATH}" GUARD_TRACE="${LIFECYCLE_WORK}/docker.calls" SIM_DOCKER_RC="${expected}" \\
+    PATH="${MOCK_BIN}:${PATH}" GUARD_TRACE="${LIFECYCLE_WORK}/docker.calls" SIM_DOCKER_RC="${expected}" \
       bash "${LIFECYCLE_WORK}/scripts/e2e-test.sh" > "${LIFECYCLE_WORK}/${label}.log" 2>&1 || rc=$?
     if [[ "${rc}" -eq "${expected}" &&
           ! -e "${LIFECYCLE_WORK}/build/run_test_in_container.sh" &&
