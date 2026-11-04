@@ -54,6 +54,7 @@ for cmd in Xvfb wineboot wineserver sleep; do
     chmod +x "${MOCK_BIN}/${cmd}"
 done
 
+passed=0
 failures=0
 run_case() {
     local label="$1" expected="$2" stale="${3:-false}"
@@ -84,6 +85,7 @@ run_case() {
         failures=$((failures + 1))
     else
         echo "PASS ${label} (status ${rc})"
+        passed=$((passed + 1))
     fi
 }
 
@@ -114,6 +116,7 @@ if [[ "$host_rc" -eq 2 ]] &&
    [[ "$(cat "$HOST_WORK/build/run_test_in_container.sh")" == human-owned-script ]] &&
    [[ ! -e "$TMP/docker-guard-trace.log" ]]; then
     echo "PASS preexisting-host-script-refusal (status 2; no build or Docker)"
+    passed=$((passed + 1))
 else
     echo "FAIL preexisting-host-script-refusal (status $host_rc)" >&2
     failures=$((failures + 1))
@@ -127,14 +130,14 @@ cp "${SCRIPT_DIR}/e2e-test.sh" "${LIFECYCLE_WORK}/scripts/e2e-test.sh"
 cat > "${LIFECYCLE_WORK}/scripts/build-binaries.sh" <<'FAKE_BUILD'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'mock-build-only\\n'
+printf 'mock-build-only\n'
 FAKE_BUILD
 cat > "${LIFECYCLE_WORK}/scripts/package-installer.sh" <<'FAKE_PACKAGE'
 #!/usr/bin/env bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 mkdir -p "${root}/build/installer/dist"
-printf 'mock-installer-not-an-executable\\n' > "${root}/build/installer/dist/IdrTestcase-Setup.exe"
+printf 'mock-installer-not-an-executable\n' > "${root}/build/installer/dist/IdrTestcase-Setup.exe"
 FAKE_PACKAGE
 chmod +x "${LIFECYCLE_WORK}/scripts/build-binaries.sh" "${LIFECYCLE_WORK}/scripts/package-installer.sh"
 run_host_lifecycle() {
@@ -145,9 +148,10 @@ run_host_lifecycle() {
           ! -e "${LIFECYCLE_WORK}/build/run_test_in_container.sh" &&
           ! -L "${LIFECYCLE_WORK}/build/run_test_in_container.sh" ]] &&
           grep -Fq '=== Step 3: Running E2E Test in Container ===' "${LIFECYCLE_WORK}/${label}.log"; then
-        printf 'PASS host-script-lifecycle-%s (status %s; owned driver cleaned)\\n' "${label}" "${rc}"
+        printf 'PASS host-script-lifecycle-%s (status %s; owned driver cleaned)\n' "${label}" "${rc}"
+        passed=$((passed + 1))
     else
-        printf 'FAIL host-script-lifecycle-%s (status %s)\\n' "${label}" "${rc}" >&2
+        printf 'FAIL host-script-lifecycle-%s (status %s)\n' "${label}" "${rc}" >&2
         failures=$((failures + 1))
     fi
 }
@@ -155,8 +159,8 @@ run_host_lifecycle first-success 0
 run_host_lifecycle repeat-success 0
 run_host_lifecycle docker-failure 49
 
-if [[ "${failures}" -ne 0 ]]; then
-    echo "FAIL: ${failures} synthetic E2E contract checks" >&2
+if [[ "${failures}" -ne 0 || "${passed}" -ne 10 ]]; then
+    echo "FAIL: ${passed}/10 passed, ${failures} failed synthetic E2E contract checks" >&2
     exit 1
 fi
-echo "PASS: 10/10 synthetic E2E contract checks (NOT product qualification)"
+echo "PASS: ${passed}/10 synthetic E2E contract checks (NOT product qualification)"
