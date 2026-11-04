@@ -169,7 +169,7 @@ run_host_lifecycle() {
     fi
     if [[ "${rc}" -eq "${expected}" && "${ownership_ok}" == yes ]] &&
           grep -Fq '=== Step 3: Running E2E Test in Container ===' "${LIFECYCLE_WORK}/${label}.log"; then
-        printf 'PASS host-script-lifecycle-%s (status %s; owned driver cleaned)\n' "${label}" "${rc}"
+        printf 'PASS host-script-lifecycle-%s (status %s; owned driver %s)\n' "${label}" "${rc}" "$([[ "${preserve}" == yes ]] && printf 'preserved on external modification' || printf 'cleaned')"
         passed=$((passed + 1))
     else
         printf 'FAIL host-script-lifecycle-%s (status %s)\n' "${label}" "${rc}" >&2
