@@ -103,7 +103,7 @@ cat > "$MOCK_BIN/docker" <<'MOCK_DOCKER'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'docker-invoked\n' >> "$GUARD_TRACE"
-exit 99
+exit "${SIM_DOCKER_RC:-99}"
 MOCK_DOCKER
 chmod +x "$MOCK_BIN/docker"
 host_rc=0
@@ -119,8 +119,44 @@ else
     failures=$((failures + 1))
 fi
 
+# Verify successful repeat use and a failing Docker exit clean only the
+# newly generated, unmodified host driver (never the preexisting sentinel).
+LIFECYCLE_WORK="${TMP}/host-script-lifecycle"
+mkdir -p "${LIFECYCLE_WORK}/scripts"
+cp "${SCRIPT_DIR}/e2e-test.sh" "${LIFECYCLE_WORK}/scripts/e2e-test.sh"
+cat > "${LIFECYCLE_WORK}/scripts/build-binaries.sh" <<'FAKE_BUILD'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'mock-build-only\\n'
+FAKE_BUILD
+cat > "${LIFECYCLE_WORK}/scripts/package-installer.sh" <<'FAKE_PACKAGE'
+#!/usr/bin/env bash
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+mkdir -p "${root}/build/installer/dist"
+printf 'mock-installer-not-an-executable\\n' > "${root}/build/installer/dist/IdrTestcase-Setup.exe"
+FAKE_PACKAGE
+chmod +x "${LIFECYCLE_WORK}/scripts/build-binaries.sh" "${LIFECYCLE_WORK}/scripts/package-installer.sh"
+run_host_lifecycle() {
+    local label="$1" expected="$2" rc=0
+    PATH="${MOCK_BIN}:${PATH}" GUARD_TRACE="${LIFECYCLE_WORK}/docker.calls" SIM_DOCKER_RC="${expected}" \\
+      bash "${LIFECYCLE_WORK}/scripts/e2e-test.sh" > "${LIFECYCLE_WORK}/${label}.log" 2>&1 || rc=$?
+    if [[ "${rc}" -eq "${expected}" &&
+          ! -e "${LIFECYCLE_WORK}/build/run_test_in_container.sh" &&
+          ! -L "${LIFECYCLE_WORK}/build/run_test_in_container.sh" ]] &&
+          grep -Fq '=== Step 3: Running E2E Test in Container ===' "${LIFECYCLE_WORK}/${label}.log"; then
+        printf 'PASS host-script-lifecycle-%s (status %s; owned driver cleaned)\\n' "${label}" "${rc}"
+    else
+        printf 'FAIL host-script-lifecycle-%s (status %s)\\n' "${label}" "${rc}" >&2
+        failures=$((failures + 1))
+    fi
+}
+run_host_lifecycle first-success 0
+run_host_lifecycle repeat-success 0
+run_host_lifecycle docker-failure 49
+
 if [[ "${failures}" -ne 0 ]]; then
     echo "FAIL: ${failures} synthetic E2E contract checks" >&2
     exit 1
 fi
-echo "PASS: 7/7 synthetic E2E contract checks (NOT product qualification)"
+echo "PASS: 10/10 synthetic E2E contract checks (NOT product qualification)"
