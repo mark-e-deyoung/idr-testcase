@@ -44,6 +44,7 @@ jobs:
           grep -Fxq 'PASS owner-lifecycle' "$RUNNER_TEMP/fpc-classes.log"
           grep -Fxq 'PASS published-rtti' "$RUNNER_TEMP/fpc-classes.log"
           grep -Fxq 'PASS component-stream-roundtrip' "$RUNNER_TEMP/fpc-classes.log"
+          grep -Fxq 'TRACE loaded-count=1' "$RUNNER_TEMP/fpc-classes.log"
           grep -Fxq 'PASS unknown-class-negative' "$RUNNER_TEMP/fpc-classes.log"
           grep -Fxq 'PASS 4/4 FPC clean-room behavioral probes (NOT Delphi VCL parity)' "$RUNNER_TEMP/fpc-classes.log"
           echo 'PASS four clean-room FPC witness classes'
