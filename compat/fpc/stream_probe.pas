@@ -90,6 +90,7 @@ begin
     N := TProbeNode(C);
     Require(N.Owner = ReadR, 'decoded owner');
     Require(N.Value = 41, 'decoded value');
+    Require(ReadR.LoadedCount = 1, 'Loaded callback must occur once after streaming');
     WriteLn('PASS component-stream-roundtrip');
     WriteLn('TRACE loaded-count=', ReadR.LoadedCount);
   finally ReadR.Free; Orig.Free; M.Free; end;
