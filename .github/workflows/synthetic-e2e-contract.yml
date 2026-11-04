@@ -28,8 +28,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout source only
-        uses: actions/checkout@v4
+      - name: Fetch explicit public source scripts only (no Git checkout)
+        shell: bash
+        env:
+          SRC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SRC_SHA" =~ ^[0-9a-f]{40}$ ]]
+          for path in build.sh scripts/e2e-test.sh scripts/test-e2e-contract.sh scripts/test-clean-refusal-contract.sh; do
+            mkdir -p "$(dirname "$path")"
+            curl --fail --location --silent --show-error --retry 2 \
+              "https://raw.githubusercontent.com/mark-e-deyoung/idr-testcase/${SRC_SHA}/${path}" \
+              --output "$path"
+            test -s "$path"
+          done
+          echo 'PASS: only four source scripts acquired; no compiled fixture bytes or Git checkout'
       - name: Parse scripts
         run: |
           bash -n scripts/e2e-test.sh
