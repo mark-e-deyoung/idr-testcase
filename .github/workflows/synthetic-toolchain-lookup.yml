@@ -26,8 +26,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout source only
-        uses: actions/checkout@v4
+      - name: Acquire only pinned source scripts and verified Git modes (no checkout)
+        shell: bash
+        env:
+          SRC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SRC_SHA" =~ ^[0-9a-f]{40}$ ]]
+          command -v jq >/dev/null
+          for path in build.sh scripts/build-binaries.sh scripts/package-installer.sh scripts/test-toolchain-lookup-contract.sh; do
+            mkdir -p "$(dirname "$path")"
+            curl --fail --location --silent --show-error --retry 2 \
+              "https://raw.githubusercontent.com/mark-e-deyoung/idr-testcase/${SRC_SHA}/${path}" \
+              --output "$path"
+            test -s "$path"
+          done
+          curl --fail --location --silent --show-error --retry 2 \
+            "https://api.github.com/repos/mark-e-deyoung/idr-testcase/git/commits/${SRC_SHA}" \
+            --output "$RUNNER_TEMP/source-commit.json"
+          TREE_SHA="$(jq -er '.tree.sha' "$RUNNER_TEMP/source-commit.json")"
+          [[ "$TREE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          curl --fail --location --silent --show-error --retry 2 \
+            "https://api.github.com/repos/mark-e-deyoung/idr-testcase/git/trees/${TREE_SHA}?recursive=1" \
+            --output "$RUNNER_TEMP/source-tree.json"
+          [[ "$(jq -r '.truncated' "$RUNNER_TEMP/source-tree.json")" == false ]]
+          for tracked in build.sh scripts/build-binaries.sh scripts/package-installer.sh; do
+            mode="$(jq -er --arg p "$tracked" '.tree[] | select(.path == $p and .type == "blob") | .mode' "$RUNNER_TEMP/source-tree.json")"
+            [[ "$mode" == 100755 ]] || { echo "FAIL: remote Git mode for $tracked is $mode"; exit 1; }
+            chmod +x -- "$tracked"
+          done
+          git init -q
+          git -c core.filemode=true add -- build.sh scripts/build-binaries.sh scripts/package-installer.sh scripts/test-toolchain-lookup-contract.sh
+          echo 'PASS: pinned source scripts and remote Git-mode metadata only; no binary checkout'
       - name: Parse scripts
         run: |
           bash -n scripts/build-binaries.sh
