@@ -1,0 +1,56 @@
+name: IDR synthetic E2E contract
+
+on:
+  pull_request:
+    paths:
+      - "build.sh"
+      - "scripts/test-clean-refusal-contract.sh"
+      - "scripts/e2e-test.sh"
+      - "scripts/test-e2e-contract.sh"
+      - ".github/workflows/synthetic-e2e-contract.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "build.sh"
+      - "scripts/test-clean-refusal-contract.sh"
+      - "scripts/e2e-test.sh"
+      - "scripts/test-e2e-contract.sh"
+      - ".github/workflows/synthetic-e2e-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-e2e:
+    name: License-clean E2E contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch explicit public source scripts only (no Git checkout)
+        shell: bash
+        env:
+          SRC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SRC_SHA" =~ ^[0-9a-f]{40}$ ]]
+          for path in build.sh scripts/e2e-test.sh scripts/test-e2e-contract.sh scripts/test-clean-refusal-contract.sh; do
+            mkdir -p "$(dirname "$path")"
+            curl --fail --location --silent --show-error --retry 2 \
+              "https://raw.githubusercontent.com/mark-e-deyoung/idr-testcase/${SRC_SHA}/${path}" \
+              --output "$path"
+            test -s "$path"
+          done
+          echo 'PASS: only four source scripts acquired; no compiled fixture bytes or Git checkout'
+      - name: Parse scripts
+        run: |
+          bash -n scripts/e2e-test.sh
+          bash -n scripts/test-e2e-contract.sh
+      - name: Execute negative and positive synthetic cases
+        run: bash scripts/test-e2e-contract.sh
+      - name: Verify non-destructive cleanup contract
+        run: |
+          bash -n build.sh
+          bash -n scripts/test-clean-refusal-contract.sh
+          bash scripts/test-clean-refusal-contract.sh
