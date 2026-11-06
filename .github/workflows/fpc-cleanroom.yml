@@ -34,7 +34,7 @@ jobs:
           sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends fp-compiler
           test "$(fpc -iV)" = "3.2.2"
           fpc -iV
-      - name: Compile and verify five behavioral witnesses
+      - name: Compile and verify six behavioral witnesses
         shell: bash
         run: |
           set -euo pipefail
@@ -46,6 +46,7 @@ jobs:
           grep -Fxq 'PASS component-stream-roundtrip' "$RUNNER_TEMP/fpc-classes.log"
           grep -Fxq 'PASS forward-reference-fixup' "$RUNNER_TEMP/fpc-classes.log"
           grep -Fxq 'TRACE loaded-count=1' "$RUNNER_TEMP/fpc-classes.log"
+          grep -Fxq 'PASS unknown-property-negative' "$RUNNER_TEMP/fpc-classes.log"
           grep -Fxq 'PASS unknown-class-negative' "$RUNNER_TEMP/fpc-classes.log"
-          grep -Fxq 'PASS 5/5 FPC clean-room behavioral probes (NOT Delphi VCL parity)' "$RUNNER_TEMP/fpc-classes.log"
-          echo 'PASS five clean-room FPC witness classes'
+          grep -Fxq 'PASS 6/6 FPC clean-room behavioral probes (NOT Delphi VCL parity)' "$RUNNER_TEMP/fpc-classes.log"
+          echo 'PASS six clean-room FPC witness classes'
