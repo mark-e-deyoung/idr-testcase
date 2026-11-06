@@ -19,13 +19,19 @@ on:
       - ".github/workflows/synthetic-e2e-contract.yml"
   workflow_dispatch:
 
+# Cancel only stale PR attempts for this workflow; preserve each default-branch
+# push evidence. This cannot fan out into licensed or binary-bearing builds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   synthetic-e2e:
     name: License-clean E2E contract
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Fetch explicit public source scripts only (no Git checkout)

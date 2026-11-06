@@ -17,13 +17,19 @@ on:
       - ".github/workflows/synthetic-toolchain-lookup.yml"
   workflow_dispatch:
 
+# Cancel only stale PR attempts for this workflow; preserve each default-branch
+# push evidence. This cannot fan out into licensed or binary-bearing builds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
   synthetic-toolchain:
     name: License-clean wrapper lookup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Acquire only pinned source scripts and verified Git modes (no checkout)
