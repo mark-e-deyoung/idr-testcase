@@ -5,6 +5,17 @@ on:
     paths:
       - 'compat/fpc/**'
       - '.github/workflows/fpc-cleanroom.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'compat/fpc/**'
+      - '.github/workflows/fpc-cleanroom.yml'
+
+# Supersede stale PR attempts; retain each default-branch push proof.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -17,7 +28,7 @@ jobs:
       - name: Fetch one original Pascal source file (no Git checkout)
         shell: bash
         env:
-          SRC_SHA: ${{ github.event.pull_request.head.sha }}
+          SRC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           [[ "$SRC_SHA" =~ ^[0-9a-f]{40}$ ]]
